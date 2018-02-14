@@ -1,0 +1,9 @@
+#JSGF V1.0;
+grammar gram_en_US;
+
+public <command> = turn tv <act_control> | <act_vol> volume | <act_ch> channel | <switch_lang> ;
+
+<act_control>    = on | off ;
+<act_vol>        = increase | decrease ;
+<act_ch>         = next | previous ;
+<switch_lang>    = switch to portuguese ;

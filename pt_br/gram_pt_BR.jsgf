@@ -1,0 +1,10 @@
+#JSGF V1.0;
+grammar gram_pt_BR;
+
+public <command> = <act_control> televisão | <act_vol> volume  | <act_ch_1> canal | canal <act_ch_2> | <switch_lang> ;
+
+<act_control>    = ligar | desligar ;
+<act_vol>        = aumentar | diminuir ;
+<act_ch_1>       = próximo ;
+<act_ch_2>       = anterior ;
+<switch_lang>    = mudar pro inglês ;
