@@ -1,4 +1,4 @@
-TARGET=ps
+TARGET=ps_desktop
 
 CPP=g++
 LIBS=`pkg-config --cflags --libs pocketsphinx sphinxbase`

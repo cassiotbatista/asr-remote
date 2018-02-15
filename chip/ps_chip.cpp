@@ -14,6 +14,7 @@
  * https://cmusphinx.github.io/wiki/faq/
  * http://www.robotrebels.org/index.php?topic=239.0
  * https://stackoverflow.com/questions/29054341/stdlogic-error-basic-string-s-construct-null-not-valid
+ * https://stackoverflow.com/questions/4217037/catch-ctrl-c-in-c 
  *
  */
 
@@ -26,8 +27,16 @@
 #include <sphinxbase/ad.h>
 #include <sphinxbase/err.h>
 
-#define MODELDIR_PT_BR "/home/cassio/sphinx_hackaday/pt_br"
-#define MODELDIR_EN_US "/home/cassio/sphinx_hackaday/en_us"
+#include "bluetooth.h"
+#include "bluetooth.c"
+
+#include "simple_gpio.h"
+#include "simple_gpio.c"
+
+#define MODELDIR_PT_BR "../pt_br"
+#define MODELDIR_EN_US "../en_us"
+
+#define DEGUB false
 
 #define C_FG_K "\x1b[30m"
 #define C_FG_R "\x1b[31m"
@@ -52,13 +61,13 @@
 #define C_BLINK      "\x1b[5m"
 #define C_REVERSE    "\x1b[7m"
 
+using namespace std;
+
 static bool volatile keep_running = true;
 
 void signal_handler(int dummy) {
 	keep_running = false;
 }
-
-using namespace std;
 
 string ps_decode_from_mic(ps_decoder_t* ps, ad_rec_t* ad);
 
@@ -68,26 +77,30 @@ main(int argc, char *argv[])
 	/* create audio rec (ALSA) struct */
 	ad_rec_t     *ad;
 
-	/* create ps decoder and config structs for PT_BR and EN_US */
+	/* create ps decoder and config structs for PT_BR */
 	ps_decoder_t *ps_PT_BR;
 	cmd_ln_t     *config_PT_BR;
 
+	/* create ps decoder and config structs for EN_US */
 	ps_decoder_t *ps_EN_US;
 	cmd_ln_t     *config_EN_US;
 
 	int PT_BR = 1;
-
 	signal(SIGINT, signal_handler);
 
 	/* load configuration structure */
-	cerr << "Alocando recursos para PT_BR" << endl;
+	#if DEGUB
+		cerr << "[PT_BR]\tAlocando recursos" << endl;
+	#endif
 	config_PT_BR = cmd_ln_init(NULL, ps_args(), TRUE,         // ps_args() passes the default values
 			"-hmm",  MODELDIR_PT_BR "/res",                   // acoustic model dir
 			"-dict", MODELDIR_PT_BR "/dic_sphinx_pt_BR.dict", // phonetic dictionaty (lexicon)
 			"-logfn", "/dev/null",                            // suppress log info from being sent to screen
 			NULL);
 
-	cerr << "Allocating resources for EN_US" << endl;
+	#if DEGUB
+		cerr << "[EN_US]\tAllocating resources" << endl;
+	#endif
 	config_EN_US = cmd_ln_init(NULL, ps_args(), TRUE,         // ps_args() passes the default values
 			"-hmm",  MODELDIR_EN_US "/res",                   // acoustic model dir
 			"-dict", MODELDIR_EN_US "/dic_sphinx_en_US.dict", // phonetic dictionaty (lexicon)
@@ -95,54 +108,104 @@ main(int argc, char *argv[])
 			NULL);
 
 	/* init ps decoder */
-	cerr << "Initializing pocketsphinx decoder" << endl;
+	#if DEGUB
+		cerr << "[PS]\tInitializing PocketSphinx decoder for both languages" << endl;
+	#endif
 	ps_PT_BR = ps_init(config_PT_BR);
 	ps_EN_US = ps_init(config_EN_US);
 
 	/* open default mic at default sample rate */
-	cerr << "Opening mic device" << endl;
+	#if DEGUB
+		cerr << "[ADMIC]\tOpening mic device" << endl;
+	#endif
 	ad = ad_open_dev("default", (int) cmd_ln_float32_r(config_PT_BR, "-samprate"));
 
 	/* set keyword to spot */
-	cerr << "Setting KWS" << endl;
+	#if DEGUB
+		cerr << "[PS]\tSetting keywords (keyphrases) to spot in both languages" << endl;
+	#endif
 	ps_set_keyphrase(ps_PT_BR, "kws_PT_BR", "acordar sistema");
 	ps_set_keyphrase(ps_EN_US, "kws_EN_US", "wake up system");
 
 	/* set FSG grammar from JSGF file */
-	cerr << "Setting GLC" << endl;
+	#if DEGUB
+		cerr << "[PT_BR]\tDefinindo gramática [de estados finitos] livre-de-contexto (autômato)" << endl;
+	#endif
 	ps_set_jsgf_file(ps_PT_BR, "jsgf_PT_BR", MODELDIR_PT_BR "/gram_pt_BR.jsgf");
 	ps_set_fsg(ps_PT_BR, "fsg_PT_BR", ps_get_fsg(ps_PT_BR, "jsgf_PT_BR"));
 
+	#if DEGUB
+		cerr << "[EN_US]\tDefining context-free [finite state] grammar (automata)" << endl;
+	#endif
 	ps_set_jsgf_file(ps_EN_US, "jsgf_EN_US", MODELDIR_EN_US "/gram_en_US.jsgf");
 	ps_set_fsg(ps_EN_US, "fsg_EN_US", ps_get_fsg(ps_EN_US, "jsgf_EN_US"));
+
+	/* export: tell kernel I'm gonna use GPIO pins */
+	#if DEBUG
+		cerr << "[GPIO]\texporting" << endl;
+	#endif
+	gpio_export(LED_RED);
+	gpio_export(LED_AMBER);
+	gpio_export(LED_GREEN);
+
+	/* direction: define them as output pins */
+	#if DEBUG
+		cerr << "[GPIO]\tset direction as output" << endl;
+	#endif
+	gpio_set_dir(LED_RED,   OUTPUT_PIN);
+	gpio_set_dir(LED_AMBER, OUTPUT_PIN);
+	gpio_set_dir(LED_GREEN, OUTPUT_PIN);
+
+	/* make sure all LEDs start off */
+	#if DEBUG
+		cerr << "[GPIO]\tstart all LEDs off" << endl;
+	#endif
+	gpio_set_value(LED_RED,   HIGH);
+	gpio_set_value(LED_AMBER, HIGH);
+	gpio_set_value(LED_GREEN, HIGH);
 
 	string sent;
 	while(keep_running) {
 
 		sent = "";
 
+		#if DEBUG
+			cerr << "turning red LED on" << endl;
+		#endif
+
+		/* Turn red light on */
+		gpio_set_value(LED_RED, LOW);
+		gpio_set_value(LED_AMBER, HIGH);
+		gpio_set_value(LED_GREEN, HIGH);
+
 		/* switch to keyword spotting mode */
+		#if DEGUB
+			cerr << "[PS]\tSwitching to keyword spotting mode";
+		#endif
 		ps_set_search(ps_PT_BR, "kws_PT_BR");
 		ps_set_search(ps_EN_US, "kws_EN_US");
 
 		do {
 			if(PT_BR) {
-				cerr << C_BG_G << C_FG_W << endl << "Por favor, fale a palavra-chave: ";
+				cerr << C_BG_G << C_FG_W << endl << "Por favor, fale a palavra-chave (\"acordar sistema\"):";
 				sent = ps_decode_from_mic(ps_PT_BR, ad);
 				cerr << C_RESET << C_FG_Y ;
 			} else {
-				cerr << C_BG_R << C_FG_W << endl << "Please, speak the keyword: ";
+				cerr << C_BG_R << C_FG_W << endl << "Please, speak the keyword (\"wake up system\"):";
 				sent = ps_decode_from_mic(ps_EN_US, ad);
 				cerr << C_RESET << C_FG_C << "\t";
 			}
 		} while(sent == "" && keep_running);
-		cerr << "\t" << sent << C_RESET << endl;
+		cerr << "\t" << sent << C_RESET;
 
 		/* handling */
 		if(!keep_running)
 			break;
 
 		/* switch to grammar mode */
+		#if DEGUB
+			cerr << endl << "[PS]\tSwitching to grammar mode";
+		#endif
 		ps_set_search(ps_PT_BR, "fsg_PT_BR");
 		ps_set_search(ps_EN_US, "fsg_EN_US");
 
@@ -196,25 +259,53 @@ main(int argc, char *argv[])
 		cerr << C_RESET << "\t" << sent << endl;
 	} // whilc keep running
 
-	/* free resources */
-	cerr << "Liberando recursos de gramática para PT_BR" << endl;
+	/* close mic */
+	#if DEGUB
+		cerr << "[ADMIC]\tClosing mic device" << endl;
+	#endif
+	ad_close(ad); 
+
+	/* free resources PT_BR */
+	#if DEGUB
+		cerr << "[PT_BR]\tLiberando recursos de gramática" << endl;
+	#endif
 	ps_unset_search(ps_PT_BR, "kws_PT_BR");
 	ps_unset_search(ps_PT_BR, "fsg_PT_BR");
 
-	cerr << "Freeing grammar resources for EN_US" << endl;
+	/* free resources EN_US */
+	#if DEGUB
+		cerr << "[EN_US]\tFreeing grammar resources" << endl;
+	#endif
 	ps_unset_search(ps_EN_US, "kws_EN_US");
 	ps_unset_search(ps_EN_US, "fsg_EN_US");
 
-	/* close mic */
-	cerr << "Closing mic device" << endl;
-	ad_close(ad); 
+	/* Turn all LEDs off */
+	#if DEBUG
+		cerr << "[GPIO]\tturn all LEDs off" << endl;
+	#endif
+	gpio_set_value(LED_RED,   HIGH);
+	gpio_set_value(LED_AMBER, HIGH);
+	gpio_set_value(LED_GREEN, HIGH);
 
-	/* cleaning up */
-	cerr << "Destruindo estruturas para PT_BR" << endl;
+	/* free GPIO pins */
+	#if DEBUG
+		cerr << "[GPIO]\tunexport/free pins" << endl;
+	#endif
+	gpio_unexport(LED_RED);
+	gpio_unexport(LED_AMBER);
+	gpio_unexport(LED_GREEN);
+
+	/* cleaning up: destroy PT_BR structures */
+	#if DEGUB
+		cerr << "[PT_BR]\tDestruindo estruturas de dados do PocketSphinx" << endl;
+	#endif
 	ps_free(ps_PT_BR);
 	cmd_ln_free_r(config_PT_BR);
 
-	cerr << "Destroying structures for EN_US" << endl;
+	/* cleaning up: destroy EN_US structures */
+	#if DEGUB
+		cerr << "[PT_BR]\tDestroying PocketSphinx data structures" << endl;
+	#endif
 	ps_free(ps_EN_US);
 	cmd_ln_free_r(config_EN_US);
 
@@ -260,3 +351,5 @@ ps_decode_from_mic(ps_decoder_t* ps, ad_rec_t* ad)
 
 	return "";
 }
+
+/*** EOF ***/
