@@ -1,6 +1,6 @@
 /*
  * 
- * Using PocketSphinx decoder to control a TV via spoken words 
+ * Using PocketSphinx decoder to control a Samsung TV via spoken words 
  * in both English and Brazilian Portuguese
  * 
  * Author: Feb 2018
@@ -18,58 +18,9 @@
  *
  */
 
-#include <iostream>
-#include <string>
-#include <stdlib.h>
-#include <signal.h>
-
-#include <pocketsphinx.h>
-#include <sphinxbase/ad.h>
-#include <sphinxbase/err.h>
-
-#include "bluetooth.h"
-#include "bluetooth.c"
-
-#include "simple_gpio.h"
-#include "simple_gpio.c"
-
-#define MODELDIR_PT_BR "../pt_br"
-#define MODELDIR_EN_US "../en_us"
-
-#define DEGUB false
-
-#define C_FG_K "\x1b[30m"
-#define C_FG_R "\x1b[31m"
-#define C_FG_G "\x1b[32m"
-#define C_FG_Y "\x1b[33m"
-#define C_FG_B "\x1b[34m"
-#define C_FG_M "\x1b[35m"
-#define C_FG_C "\x1b[36m"
-#define C_FG_W "\x1B[38m"
-
-#define C_BG_K "\x1b[40m"
-#define C_BG_R "\x1b[41m"
-#define C_BG_G "\x1b[42m"
-#define C_BG_Y "\x1b[43m"
-#define C_BG_B "\x1b[44m"
-#define C_BG_M "\x1b[45m"
-#define C_BG_C "\x1b[46m"
-#define C_BG_W "\x1B[47m"
-
-#define C_RESET      "\x1b[0m"
-#define C_BOLD       "\x1b[1m"
-#define C_BLINK      "\x1b[5m"
-#define C_REVERSE    "\x1b[7m"
+#include "ps_cpp.hpp"
 
 using namespace std;
-
-static bool volatile keep_running = true;
-
-void signal_handler(int dummy) {
-	keep_running = false;
-}
-
-string ps_decode_from_mic(ps_decoder_t* ps, ad_rec_t* ad);
 
 int
 main(int argc, char *argv[]) 
@@ -141,7 +92,7 @@ main(int argc, char *argv[])
 	ps_set_fsg(ps_EN_US, "fsg_EN_US", ps_get_fsg(ps_EN_US, "jsgf_EN_US"));
 
 	/* export: tell kernel I'm gonna use GPIO pins */
-	#if DEBUG
+	#if DEGUB
 		cerr << "[GPIO]\texporting" << endl;
 	#endif
 	gpio_export(LED_RED);
@@ -149,7 +100,7 @@ main(int argc, char *argv[])
 	gpio_export(LED_GREEN);
 
 	/* direction: define them as output pins */
-	#if DEBUG
+	#if DEGUB
 		cerr << "[GPIO]\tset direction as output" << endl;
 	#endif
 	gpio_set_dir(LED_RED,   OUTPUT_PIN);
@@ -157,7 +108,7 @@ main(int argc, char *argv[])
 	gpio_set_dir(LED_GREEN, OUTPUT_PIN);
 
 	/* make sure all LEDs start off */
-	#if DEBUG
+	#if DEGUB
 		cerr << "[GPIO]\tstart all LEDs off" << endl;
 	#endif
 	gpio_set_value(LED_RED,   HIGH);
@@ -169,7 +120,7 @@ main(int argc, char *argv[])
 
 		sent = "";
 
-		#if DEBUG
+		#if DEGUB
 			cerr << "turning red LED on" << endl;
 		#endif
 
@@ -187,11 +138,13 @@ main(int argc, char *argv[])
 
 		do {
 			if(PT_BR) {
-				cerr << C_BG_G << C_FG_W << endl << "Por favor, fale a palavra-chave (\"acordar sistema\"):";
+				cerr << C_BG_G << C_FG_W << endl;
+				cerr << "Por favor, fale a palavra-chave (\"acordar sistema\"):";
 				sent = ps_decode_from_mic(ps_PT_BR, ad);
 				cerr << C_RESET << C_FG_Y ;
 			} else {
-				cerr << C_BG_R << C_FG_W << endl << "Please, speak the keyword (\"wake up system\"):";
+				cerr << C_BG_R << C_FG_W << endl;
+				cerr << "Please, speak the keyword (\"wake up system\"):";
 				sent = ps_decode_from_mic(ps_EN_US, ad);
 				cerr << C_RESET << C_FG_C << "\t";
 			}
@@ -214,20 +167,20 @@ main(int argc, char *argv[])
 				cerr << endl << C_FG_G << "Agora, fale o comando de controle: ";
 				sent = ps_decode_from_mic(ps_PT_BR, ad);
 				if(sent != "") {
-					if(sent[0] == 'm') {      // [m]udar pro inglês
+					if(sent[0] == 'm') {              /* [m]udar pro inglês */
 						PT_BR = 0;
-					} else if(sent[0]=='l') { // [l]igar televisão
-						
-					} else if(sent[1]=='e') { // d[e]sligar televisão
-						
-					} else if(sent[0]=='a') { // [a]umentar volume
-						
-					} else if(sent[1]=='i') { // d[i]minuir volume
-					
-					} else if(sent[0]=='p') { // [p]róximo canal
-						
-					} else if(sent[0]=='c') { // [c]anal anterior
-					
+					} else if(sent[0]=='l') {         /* [l]igar televisão */
+						samsung_send(SAMSUNG_ON_OFF);
+					} else if(sent[1]=='e') {         /* d[e]sligar televisão */
+						samsung_send(SAMSUNG_ON_OFF);
+					} else if(sent[0]=='a') {         /* [a]umentar volume */
+						samsung_send(SAMSUNG_INC_VOL);
+					} else if(sent[1]=='i') {         /* d[i]minuir volume */
+						samsung_send(SAMSUNG_DEC_VOL);
+					} else if(sent[0]=='p') {         /* [p]róximo canal */
+						samsung_send(SAMSUNG_NEXT_CH);
+					} else if(sent[0]=='c') {         /* [c]anal anterior */
+						samsung_send(SAMSUNG_PREV_CH);
 					} else { /* default */
 						/* sentença desconhecida */
 					}
@@ -236,20 +189,20 @@ main(int argc, char *argv[])
 				cerr << endl << C_FG_R << "Now, speak the command of control: ";
 				sent = ps_decode_from_mic(ps_EN_US, ad);
 				if(sent != "") {
-					if(sent[0] == 's') {                      // [s]witch to portuguese
+					if(sent[0] == 's') {                      /* [s]witch to portuguese */
 						PT_BR = 1;
-					} else if(sent[0]=='t' && sent[9]=='n') { // [t]urn tv o[n]
-						
-					} else if(sent[0]=='t' && sent[9]=='f') { // [t]urn tv o[f]f
-						
-					} else if(sent[0]=='i') {                 // [i]ncrease volume
-						
-					} else if(sent[0]=='d') {                 // [d]ecrease volume
-						
-					} else if(sent[0]=='n') {                 // [n]ext channel
-						
-					} else if(sent[0]=='p') {                 // [p]revious channel
-						
+					} else if(sent[0]=='t' && sent[9]=='n') { /* [t]urn tv o[n] */
+						samsung_send(SAMSUNG_ON_OFF);
+					} else if(sent[0]=='t' && sent[9]=='f') { /* [t]urn tv o[f]f */
+						samsung_send(SAMSUNG_ON_OFF);
+					} else if(sent[0]=='i') {                 /* [i]ncrease volume */
+						samsung_send(SAMSUNG_INC_VOL);
+					} else if(sent[0]=='d') {                 /* [d]ecrease volume */
+						samsung_send(SAMSUNG_DEC_VOL);
+					} else if(sent[0]=='n') {                 /* [n]ext channel */
+						samsung_send(SAMSUNG_NEXT_CH);
+					} else if(sent[0]=='p') {                 /* [p]revious channel */
+						samsung_send(SAMSUNG_PREV_CH);
 					} else { /* default */
 						/* unknown sentence */
 					}
@@ -257,7 +210,7 @@ main(int argc, char *argv[])
 			}
 		} while(sent == "" && keep_running);
 		cerr << C_RESET << "\t" << sent << endl;
-	} // whilc keep running
+	} /* while keep running */
 
 	/* close mic */
 	#if DEGUB
@@ -280,7 +233,7 @@ main(int argc, char *argv[])
 	ps_unset_search(ps_EN_US, "fsg_EN_US");
 
 	/* Turn all LEDs off */
-	#if DEBUG
+	#if DEGUB
 		cerr << "[GPIO]\tturn all LEDs off" << endl;
 	#endif
 	gpio_set_value(LED_RED,   HIGH);
@@ -288,7 +241,7 @@ main(int argc, char *argv[])
 	gpio_set_value(LED_GREEN, HIGH);
 
 	/* free GPIO pins */
-	#if DEBUG
+	#if DEGUB
 		cerr << "[GPIO]\tunexport/free pins" << endl;
 	#endif
 	gpio_unexport(LED_RED);
@@ -310,46 +263,60 @@ main(int argc, char *argv[])
 	cmd_ln_free_r(config_EN_US);
 
 	return 0;
-}
+} /* close main */
 
 string
 ps_decode_from_mic(ps_decoder_t* ps, ad_rec_t* ad)
 {
-	ad_start_rec(ad); // start recording
-	ps_start_utt(ps); // mark the start of the utterance
+	ad_start_rec(ad); /* start recording */
+	ps_start_utt(ps); /* mark the start of the utterance (initial silence <s>?) */
 
-	int16 adbuf[4096]; // buffer array to hold audio data
-	int32 k;           // holds the number of frames in the audio buffer
+	int16 adbuf[4096]; /* buffer array to hold audio data */
+	int32 k;           /* holds the number of frames in the audio buffer */
 
-	uint8 utt_started; // track active speech: has speech started? 
-	uint8 in_speech;   // track active speech: is speech currently happening? 
+	uint8 utt_started; /* track active speech: has speech started? */
+	uint8 in_speech;   /* track active speech: is speech currently happening? */
 
-	char const *hyp;   // pointer to "hypothesis" (best guess at the decoded result)
+	char const *hyp;   /* pointer to "hypothesis" */
 
 	utt_started = FALSE;                             // clear the utt_started flag
 	for(;;) {
 		k = ad_read(ad, adbuf, 4096);                // capture the number of frames in the audio buffer
 		ps_process_raw(ps, adbuf, k, FALSE, FALSE);  // send the audio buffer to the pocketsphinx decoder
 
-		in_speech = ps_get_in_speech(ps);            // test to see if speech is being detected
+		/* test to see if speech is being detected 
+		 * (voice activity detection?) */
+		in_speech = ps_get_in_speech(ps);
 
-		if (in_speech && !utt_started) {             // if speech has started and utt_started flag is false
-			utt_started = TRUE;                      // then set the flag
-		}
+		/* if speech has been already detected
+		 * but the flag says it hasn't been started yet 
+		 * then we set the flag, saying that speech has already started */
+		if (in_speech && !utt_started)
+			utt_started = TRUE; 
 
-		if (!in_speech && utt_started) {             // if speech has ended and the utt_started flag is true 
-			ps_end_utt(ps);                          // then mark the end of the utterance
-			ad_stop_rec(ad);                         // stop recording
+		/* if speech is not being detected anymore 
+		 * but the flag says it has already started 
+		 * then we've detected the end point (silence </s>) */
+		if (!in_speech && utt_started) {
+			ps_end_utt(ps);  /* so we mark the end of the utterance */
+			ad_stop_rec(ad); /* and stop recording. */
 
-			hyp = ps_get_hyp(ps, NULL);              // query pocketsphinx for "hypothesis" of decoded statement
-			if(hyp != 0)
-				return hyp;                          // the function returns the hypothesis
+			/* query pocketsphinx for "hypothesis" of decoded statement */
+			if((hyp = ps_get_hyp(ps, NULL)) != 0)
+				return hyp;
 
-			break;                                   // exit the while loop and return to main
+			break;
 		}
 	}
 
+	/* if the threshold score has not been achieved, we return nothing */
 	return "";
+}
+
+void
+signal_handler(int dummy) 
+{
+	keep_running = false;
 }
 
 /*** EOF ***/

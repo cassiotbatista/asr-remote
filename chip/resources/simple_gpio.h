@@ -33,22 +33,18 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SIMPLE_GPIO_H_
-#define SIMPLE_GPIO_H_
-
- /****************************************************************
- * Constants
- ****************************************************************/
+#ifndef _SIMPLE_GPIO_H_
+#define _SIMPLE_GPIO_H_
 
 #define SYSFS_GPIO_DIR "/sys/class/gpio"
 #define POLL_TIMEOUT (3 * 1000) /* 3 seconds */
 #define MAX_BUF 64
 
-#define LED_RED   1013 //U14_13 -> XIO-P0 
-#define LED_AMBER 1014 //U14_14 -> XIO-P1 
-#define LED_GREEN 1015 //U14_15 -> XIO-P2 
+#define LED_RED   1013 /* U14_13 -> XIO-P0 */
+#define LED_AMBER 1014 /* U14_14 -> XIO-P1 */
+#define LED_GREEN 1015 /* U14_15 -> XIO-P2 */
 
-#define XT_SWITCH    1016 // U14_16 -> XIO-P3 
+#define XT_SWITCH 1016 /* U14_16 -> XIO-P3 */
 
 typedef enum {
 	INPUT_PIN  = 0,
@@ -60,9 +56,6 @@ typedef enum {
 	HIGH = 1
 } PIN_VALUE;
 
-/****************************************************************
- * gpio_export
- ****************************************************************/
 int gpio_export(unsigned int gpio);
 int gpio_unexport(unsigned int gpio);
 int gpio_set_dir(unsigned int gpio, PIN_DIRECTION out_flag);
@@ -72,4 +65,4 @@ int gpio_set_edge(unsigned int gpio, char *edge);
 int gpio_fd_open(unsigned int gpio);
 int gpio_fd_close(int fd);
 
-#endif /* SIMPLE_GPIO_H_ */
+#endif /* _SIMPLE_GPIO_H_ */

@@ -48,12 +48,8 @@
 #include <sys/types.h>
 #include <sys/resource.h>
 
-
-
-/****************************************************************
- * gpio_export
- ****************************************************************/
-int gpio_export(unsigned int gpio)
+int
+gpio_export(unsigned int gpio)
 {
 	int fd, len;
 	char buf[MAX_BUF];
@@ -71,10 +67,8 @@ int gpio_export(unsigned int gpio)
 	return 0;
 }
 
-/****************************************************************
- * gpio_unexport
- ****************************************************************/
-int gpio_unexport(unsigned int gpio)
+int
+gpio_unexport(unsigned int gpio)
 {
 	int fd, len;
 	char buf[MAX_BUF];
@@ -91,10 +85,8 @@ int gpio_unexport(unsigned int gpio)
 	return 0;
 }
 
-/****************************************************************
- * gpio_set_dir
- ****************************************************************/
-int gpio_set_dir(unsigned int gpio, PIN_DIRECTION out_flag)
+int
+gpio_set_dir(unsigned int gpio, PIN_DIRECTION out_flag)
 {
 	int fd;
 	char buf[MAX_BUF];
@@ -116,10 +108,8 @@ int gpio_set_dir(unsigned int gpio, PIN_DIRECTION out_flag)
 	return 0;
 }
 
-/****************************************************************
- * gpio_set_value
- ****************************************************************/
-int gpio_set_value(unsigned int gpio, PIN_VALUE value)
+int
+gpio_set_value(unsigned int gpio, PIN_VALUE value)
 {
 	int fd;
 	char buf[MAX_BUF];
@@ -142,10 +132,8 @@ int gpio_set_value(unsigned int gpio, PIN_VALUE value)
 	return 0;
 }
 
-/****************************************************************
- * gpio_get_value
- ****************************************************************/
-char gpio_get_value(unsigned int gpio /*unsigned int *value*/)
+char
+gpio_get_value(unsigned int gpio /*unsigned int *value*/)
 {
 	int fd;
 	char buf[MAX_BUF];
@@ -165,12 +153,8 @@ char gpio_get_value(unsigned int gpio /*unsigned int *value*/)
 	return ch;
 }
 
-
-/****************************************************************
- * gpio_set_edge
- ****************************************************************/
-
-int gpio_set_edge(unsigned int gpio, char *edge)
+int
+gpio_set_edge(unsigned int gpio, char *edge)
 {
 	int fd;
 	char buf[MAX_BUF];
@@ -188,11 +172,8 @@ int gpio_set_edge(unsigned int gpio, char *edge)
 	return 0;
 }
 
-/****************************************************************
- * gpio_fd_open
- ****************************************************************/
-
-int gpio_fd_open(unsigned int gpio)
+int
+gpio_fd_open(unsigned int gpio)
 {
 	int fd;
 	char buf[MAX_BUF];
@@ -206,11 +187,8 @@ int gpio_fd_open(unsigned int gpio)
 	return fd;
 }
 
-/****************************************************************
- * gpio_fd_close
- ****************************************************************/
-
-int gpio_fd_close(int fd)
+int
+gpio_fd_close(int fd)
 {
 	return close(fd);
 }
