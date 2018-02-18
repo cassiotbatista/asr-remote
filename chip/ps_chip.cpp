@@ -151,7 +151,7 @@ main(int argc, char *argv[])
 		} while(sent == "" && keep_running);
 		cerr << "\t" << sent << C_RESET;
 
-		/* handling */
+		/* handling ctrl+c */
 		if(!keep_running)
 			break;
 
@@ -279,10 +279,17 @@ ps_decode_from_mic(ps_decoder_t* ps, ad_rec_t* ad)
 
 	char const *hyp;   /* pointer to "hypothesis" */
 
-	utt_started = FALSE;                             // clear the utt_started flag
+	utt_started = FALSE; /* clear the utt_started flag */
 	for(;;) {
-		k = ad_read(ad, adbuf, 4096);                // capture the number of frames in the audio buffer
-		ps_process_raw(ps, adbuf, k, FALSE, FALSE);  // send the audio buffer to the pocketsphinx decoder
+		/* capture a specific number of frames from the mic 
+		 * (thanks to the A/D converter, in fact) into the audio buffer */
+		k = ad_read(ad, adbuf, 4096);
+
+		/* send the audio buffer to the pocketsphinx decoder 
+		 * the function of ps_process_raw() is actually treat data from a raw file 
+		 * however, buffers from mic are also raw, so the behaviour of the 
+		 * function is the same if samples are passed in buffer chunks */
+		ps_process_raw(ps, adbuf, k, FALSE, FALSE);
 
 		/* test to see if speech is being detected 
 		 * (voice activity detection?) */
@@ -296,7 +303,7 @@ ps_decode_from_mic(ps_decoder_t* ps, ad_rec_t* ad)
 
 		/* if speech is not being detected anymore 
 		 * but the flag says it has already started 
-		 * then we've detected the end point (silence </s>) */
+		 * then we've detected the end point (final silence </s>) */
 		if (!in_speech && utt_started) {
 			ps_end_utt(ps);  /* so we mark the end of the utterance */
 			ad_stop_rec(ad); /* and stop recording. */
