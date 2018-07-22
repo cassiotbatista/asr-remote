@@ -1,4 +1,7 @@
-# PocketSphinx on ARM Embedded Linux to Control a TV via Voice Commands
+# TV Speech Remote Control
+
+- PocketSphinx on ARM Embedded Linux   
+- Android via Bluetooth Remote Control
 
 ## Sentences
 
