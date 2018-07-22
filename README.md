@@ -1,7 +1,9 @@
 # TV Speech Remote Control
 
-- PocketSphinx on ARM Embedded Linux   
-- Android via Bluetooth Remote Control
+## Modules
+
+- PocketSphinx running on ARM embedded Linux + USB mic
+- Android app as mic accessing the above system via Bluetooth
 
 ## Sentences
 
