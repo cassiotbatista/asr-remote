@@ -1,0 +1,10 @@
+# HC-05 Arduino
+http://cdn.instructables.com/ORIG/F3O/K70G/H1LWQ0PO/F3OK70GH1LWQ0PO.pdf
+http://electronics.stackexchange.com/questions/67739/hc-05-bluetooth-module-not-recognized-by-mobile-phone
+https://arduino-info.wikispaces.com/BlueTooth-HC05-HC06-Modules-How-To
+http://www.instructables.com/id/Modify-The-HC-05-Bluetooth-Module-Defaults-Using-A/?ALLSTEPS
+http://www.instructables.com/id/Cheap-2-Way-Bluetooth-Connection-Between-Arduino-a/?ALLSTEPS
+http://www.strat-num.fr/IMG/pdf/bluetooth-module-btm5-datasheet.pdf
+
+# Bluetooth on Linux using C
+http://stackoverflow.com/questions/11408609/linux-bluetooth-programming-in-c
